@@ -55,7 +55,8 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
                     "method org.yaml.snakeyaml.Yaml load java.lang.String",
                     "method java.util.Map containsKey java.lang.Object",
                     "method java.lang.Class isInstance java.lang.Object",
-                    "staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter castToType java.lang.Object java.lang.Class"
+                    "staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter castToType java.lang.Object java.lang.Class",
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods toSet java.util.Collection"
             ));
         }
     }

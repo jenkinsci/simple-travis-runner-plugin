@@ -6,10 +6,10 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <!-- Baseline Jenkins version you use to build and test the plugin. Users must have this version or newer to run. -->
         <version>2.3</version>
         <relativePath/>
     </parent>
+
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>travis-pipeline-converter</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -17,6 +17,7 @@
 
     <name>Travis Pipeline Converter Plugin</name>
     <description>This plugin provides a Pipeline step to read a .travis.yml file and run it as a part of a Pipeline job.</description>
+    <!-- TODO: Make a wiki page -->
     <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
     <licenses>
         <license>
@@ -32,22 +33,21 @@
         <workflow.version>1.13</workflow.version>
     </properties>
 
-    <!-- If you want this to appear on the wiki page:
     <developers>
-      <developer>
-        <id>bhacker</id>
-        <name>Bob Q. Hacker</name>
-        <email>bhacker@nowhere.net</email>
-      </developer>
+        <developer>
+            <id>abayer</id>
+            <name>Andrew Bayer</name>
+            <email>andrew.bayer@gmail.com</email>
+        </developer>
     </developers>
-    -->
-    <!-- Assuming you want to host on @jenkinsci:
+    
     <scm>
-      <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-      <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-      <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
+        <!-- TODO: s/abayer/jenkinsci/ -->
+        <connection>scm:git:git://github.com/abayer/${project.artifactId}-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:abayer/${project.artifactId}-plugin.git</developerConnection>
+        <url>http://github.com/abayer/${project.artifactId}-plugin</url>
     </scm>
-     -->
+
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
@@ -81,6 +81,12 @@
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-aggregator</artifactId>
             <version>${workflow.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>git</artifactId>
+            <version>2.4.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

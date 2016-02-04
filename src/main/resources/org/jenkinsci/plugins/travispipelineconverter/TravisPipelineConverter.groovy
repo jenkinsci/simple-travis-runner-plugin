@@ -17,6 +17,7 @@ class TravisPipelineConverter implements Serializable {
 
         def travisSteps = readAndConvertTravis(travisFile)
 
+        // Fail fast on any errors in before_install, install or before_script
         if (travisSteps.containsKey("before_install")) {
             script.stage "Travis Before Install"
             getSteps(travisSteps.get("before_install")).call()
@@ -31,11 +32,46 @@ class TravisPipelineConverter implements Serializable {
             script.stage "Travis Before Script"
             getSteps(travisSteps.get("before_script")).call()
         }
-        if (travisSteps.containsKey("script")) {
-            script.stage "Travis Script"
-            getSteps(travisSteps.get("script")).call()
+
+        // Note any failure in the script section but don't fail the build yet.
+        def failedScript = false
+        try {
+            if (travisSteps.containsKey("script")) {
+                script.stage "Travis Script"
+                getSteps(travisSteps.get("script")).call()
+            }
+        } catch (Exception e) {
+            stage.echo("Error on script step: ${e}")
+            failedScript = true
         }
 
+        // Swallow any errors in after_*.
+        try {
+            // If the script failed, proceed to after_failure.
+            if (failedScript) {
+                if (travisSteps.containsKey("after_failure")) {
+                    script.stage "Travis After Failure"
+                    getSteps(travisSteps.get("after_failure")).call()
+                }
+            } else {
+                // Otherwise, check after_success.
+                if (travisSteps.containsKey("after_success")) {
+                    script.stage "Travis After Success"
+                    getSteps(travisSteps.get("after_success")).call()
+                }
+            }
+            if (travisSteps.containsKey("after_script")) {
+                script.stage "Travis After Script"
+                getSteps(travisSteps.get("after_script")).call()
+            }
+        } catch (Exception e) {
+            stage.echo("Error on after step(s), ignoring: ${e}")
+        }
+
+        // If we saw a failure in the script step earlier, error out now.
+        if (failedScript) {
+            stage.error("Failing build due to failure of script step.")
+        }
     }
 
     def getSteps(travisStep) {

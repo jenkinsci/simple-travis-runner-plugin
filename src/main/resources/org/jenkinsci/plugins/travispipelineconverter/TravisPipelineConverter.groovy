@@ -36,13 +36,27 @@ class TravisPipelineConverter implements Serializable {
         // Note any failure in the script section but don't fail the build yet.
         def failedScript = false
         try {
+            // TODO: Ideally we change this to note failures in script steps but continue through all of them
+            // to completion anyway, as described in https://docs.travis-ci.com/user/customizing-the-build/#Customizing-the-Build-Step,
+            // but I want to think about the implementation more.
+            // TODO: Add timeout support (https://docs.travis-ci.com/user/customizing-the-build/#Build-Timeouts) for individual
+            // script/test suite steps.
             if (travisSteps.containsKey("script")) {
                 script.stage "Travis Script"
                 getSteps(travisSteps.get("script")).call()
             }
         } catch (Exception e) {
-            stage.echo("Error on script step: ${e}")
+            script.echo("Error on script step: ${e}")
             failedScript = true
+        }
+
+        if (!failedScript) {
+            // Skip the deploy-related steps since those rely on Travis internals.
+            for (String deployStep in ["before_deploy", "deploy", "after_deploy"].toSet()) {
+                if (travisSteps.containsKey(deployStep)) {
+                    script.echo("Not executing '${deployStep}' - Travis-specific")
+                }
+            }
         }
 
         // Swallow any errors in after_*.
@@ -65,12 +79,12 @@ class TravisPipelineConverter implements Serializable {
                 getSteps(travisSteps.get("after_script")).call()
             }
         } catch (Exception e) {
-            stage.echo("Error on after step(s), ignoring: ${e}")
+            script.echo("Error on after step(s), ignoring: ${e}")
         }
 
         // If we saw a failure in the script step earlier, error out now.
         if (failedScript) {
-            stage.error("Failing build due to failure of script step.")
+            script.error("Failing build due to failure of script step.")
         }
     }
 

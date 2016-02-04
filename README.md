@@ -17,6 +17,8 @@ Actual guts are all in src/main/resources/org/jenkinsci/plugins/travispipelineco
 An example of using a Jenkinsfile to call a .travis.yml can be found at [this repo](https://github.com/abayer/dummy-travis-test).
 
 # TODO
+- [ ] config.jelly and help HTML for Snippet Generator and reference docs.
+- [ ] Tests, tests, tests!
 - [ ] Make sure this will fail if run outside of a `node` block.
 - [ ] Allow execution of all `script` entries even if one fails.
 - [ ] Time out individual `script` entries.

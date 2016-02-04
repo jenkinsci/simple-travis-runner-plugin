@@ -40,7 +40,7 @@
             <email>andrew.bayer@gmail.com</email>
         </developer>
     </developers>
-    
+
     <scm>
         <!-- TODO: s/abayer/jenkinsci/ -->
         <connection>scm:git:git://github.com/abayer/${project.artifactId}-plugin.git</connection>
@@ -82,10 +82,32 @@
             <artifactId>workflow-aggregator</artifactId>
             <version>${workflow.version}</version>
         </dependency>
+
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
             <version>2.4.1</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-aggregator</artifactId>
+            <version>${workflow.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-support</artifactId>
+            <version>${workflow.version}</version>
+            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
     </dependencies>

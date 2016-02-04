@@ -11,7 +11,12 @@ class TravisPipelineConverter implements Serializable {
         this.script = script;
     }
 
-    // TODO: make sure this can only run within a node { }. Not sure how to do that here.
+    /**
+     * Load a ".travis.yml" file from the given path in the current workspace and execute it as best as we can.
+     * TODO: make sure this can only run within a node { }. Not sure how to do that here.
+     *
+     * @param path The path to the file in question.
+     */
     public void run(String path) {
         String travisFile = script.readFile(path)
 
@@ -88,6 +93,13 @@ class TravisPipelineConverter implements Serializable {
         }
     }
 
+    /**
+     * Takes a Travis "step", which could either be a String or an ArrayList of Strings, and returns an array of
+     * Pipeline "sh" steps inside a closure to execute those "steps".
+     *
+     * @param travisStep The value for a Travis "step" - could be either a single String or an ArrayList of Strings.
+     * @return A closure containing a possibly-empty array of Pipeline "sh" steps.
+     */
     def getSteps(travisStep) {
         def actualSteps = []
         if (travisStep instanceof String) {
@@ -104,7 +116,14 @@ class TravisPipelineConverter implements Serializable {
         }
     }
 
-    // TODO: Figure out if this actually needs to be NonCPS.
+    /**
+     * Given a ".travis.yml" formatted String (already read from a file), parses that as YAML and returns a nested Map
+     * of the contents.
+     * TODO: Figure out if this actually needs to be NonCPS.
+     *
+     * @param travisYml The String contents of a ".travis.yml" file.
+     * @return A Map with the top-level entries in the YAML as keys and their contents as Objects.
+     */
     @NonCPS
     private Map<String,Object> readAndConvertTravis(String travisYml) {
         Yaml yaml = new Yaml()

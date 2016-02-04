@@ -37,10 +37,17 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
         Binding binding = script.getBinding();
         Object travisPipelineConverter;
 
+        // If we already have a travisPipelineConverter defined, reuse it. Otherwise, load it from the DSL groovy and
+        // add it to the binding.
         if (binding.hasVariable(getName())) {
             travisPipelineConverter = binding.getVariable(getName());
         } else {
-            travisPipelineConverter = script.getClass().getClassLoader().loadClass("org.jenkinsci.plugins.travispipelineconverter.TravisPipelineConverter").getConstructor(CpsScript.class).newInstance(script);
+            travisPipelineConverter = script.getClass()
+                    .getClassLoader()
+                    .loadClass("org.jenkinsci.plugins.travispipelineconverter.TravisPipelineConverter")
+                    .getConstructor(CpsScript.class)
+                    .newInstance(script);
+
             binding.setVariable(getName(), travisPipelineConverter);
         }
 
@@ -49,6 +56,11 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
 
     @Extension
     public static class MiscWhitelist extends ProxyWhitelist {
+        /**
+         * Methods to add to the script-security whitelist for this plugin to work.
+         *
+         * @throws IOException
+         */
         public MiscWhitelist() throws IOException {
             super(new StaticWhitelist(
                     "new org.yaml.snakeyaml.Yaml",

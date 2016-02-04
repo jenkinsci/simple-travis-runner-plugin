@@ -3,5 +3,5 @@
   This view is used to render the installed plugins page.
 -->
 <div>
-  This plugin is a sample to explain how to write a Jenkins plugin.
+  This plugin provides a <a href="https://wiki.jenkins-ci.org/display/JENKINS/Pipeline+Plugin" target="_blank">Pipeline step</a> to read a <a href="https://travis-ci.org" target="_blank">.travis.yml</a> file and run it as a part of a Pipeline job.
 </div>

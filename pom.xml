@@ -16,7 +16,7 @@
     <packaging>hpi</packaging>
 
     <name>Travis Pipeline Converter Plugin</name>
-    <description>Really rough Travis pipeline converter</description>
+    <description>This plugin provides a Pipeline step to read a .travis.yml file and run it as a part of a Pipeline job.</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
     <licenses>
         <license>

@@ -27,5 +27,6 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 - [ ] Implement environment axes equivalent to Jenkins Matrix jobs, serially initially.
 - [ ] Figure out how to extrapolate `node` labels for axes to enable `parallel` usage.
 - [ ] Travis `matrix` inclusions and exclusions from environment axes (and `allow_failures`).
-- [ ] (stretch goal) Implement auto-generation of `script` and friends for (some) languages? Debatable whether to do this.
+- [ ] \(stretch goal\) Implement auto-generation of `script` and friends for (some) languages? Debatable whether to do this.
+
 

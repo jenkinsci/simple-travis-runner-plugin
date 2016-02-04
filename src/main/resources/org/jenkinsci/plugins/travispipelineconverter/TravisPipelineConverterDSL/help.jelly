@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core">
+    <p>
+        The <code>travisPipelineConverter</code> variable provides a method that allows you to read and execute
+        non-language-specific Travis builds, as defined in a <code>.travis.yml</code> file.
+    </p>
+    <p>
+        Reference:
+    </p>
+    <dl>
+        <dt><code>run(travisYmlPath)</code></dt>
+        <dd>
+            <p>
+                Reads a <code>.travis.yml</code>-formatted file from the workspace with the given path, parses out supported
+                aspects and executes them. Errors out if not run within a <code>node { ... }</code> block.
+            </p>
+        </dd>
+    </dl>
+</j:jelly>

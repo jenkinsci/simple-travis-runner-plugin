@@ -19,6 +19,7 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 # TODO
 - [ ] config.jelly and help HTML for Snippet Generator and reference docs.
 - [ ] Tests, tests, tests!
+- [ ] Ideally, find a way to optionally output as Pipeline code rather than execute, for migration purposes.
 - [ ] Make sure this will fail if run outside of a `node` block.
 - [ ] Allow execution of all `script` entries even if one fails.
 - [ ] Time out individual `script` entries.

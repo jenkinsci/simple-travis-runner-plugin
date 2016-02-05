@@ -23,6 +23,7 @@
  */
 
 
+import com.cloudbees.groovy.cps.NonCPS
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 import org.yaml.snakeyaml.Yaml
 
@@ -31,14 +32,25 @@ import org.yaml.snakeyaml.Yaml
  * Errors out if run outside a node { } block.
  *
  * @param path The path to the file in question.
+ * @param labelExpr Optional label expression to run parallel "matrix" executions on. If not given, will
+ *                    just run on 'node { }'.
  */
-public void call(String path) {
+public void call(String path, String labelExpr = null) {
     if (env.HOME == null) {
         error("travisPipelineConverter(...) can only be run within a 'node { ... }' block.")
     } else {
         String travisFile = readFile(path)
 
         def travisSteps = readAndConvertTravis(travisFile)
+
+        // Let's see what we get from env!
+        if (travisSteps.containsKey("env")) {
+            def combos = generateEnvAxes(travisSteps.get("env"))
+
+            for (int k = 0; k < combos.size(); k++) {
+                echo("combo: ${combos.get(k)}")
+            }
+        }
 
         // Fail fast on any errors in before_install, install or before_script
         if (travisSteps.containsKey("before_install")) {
@@ -119,19 +131,99 @@ public void call(String path) {
  * @param travisStep The value for a Travis "step" - could be either a single String or an ArrayList of Strings.
  * @return A closure containing a possibly-empty array of Pipeline "sh" steps.
  */
-def getSteps(travisStep) {
+private def getSteps(travisStep) {
     def actualSteps = []
-    if (travisStep instanceof String) {
-        actualSteps[0] = sh((String) travisStep)
-    } else if (travisStep instanceof ArrayList) {
-        for (int i = 0; i < travisStep.size(); i++) {
-            def thisStep = travisStep.get(i)
-            actualSteps[i] = sh((String) thisStep)
-        }
+    def stepsList = getYamlStringOrListAsList(travisStep)
+    for (int i = 0; i < stepsList.size(); i++) {
+        def thisStep = stepsList.get(i)
+        actualSteps[i] = sh((String) thisStep)
     }
 
     return {
         actualSteps
+    }
+}
+
+/**
+ * Takes a YAML entry that could be either a single String or an ArrayList of Strings. If it's a single String, returns
+ * a new List with that String as the only element. If it's an ArrayList, simply return that list. If the entry is of
+ * any other type, throws an IllegalArgumentException.
+ *
+ * @param yamlEntry
+ * @return a list of (hopefully) Strings
+ * @throws IllegalArgumentException
+ */
+private def getYamlStringOrListAsList(yamlEntry) throws IllegalArgumentException {
+    if (yamlEntry instanceof String) {
+        return [yamlEntry]
+    } else if (yamlEntry instanceof ArrayList) {
+        return yamlEntry
+    } else {
+        throw new IllegalArgumentException("Bad format of YAML - found ${yamlEntry.class} when expecting either 'String' or 'ArrayList'")
+    }
+}
+
+/**
+ * Takes the value of the 'env' key in the Travis YAML and returns a map with the environment keys as the key and a
+ * list of specified values for the environment key as the value.
+ *
+ * @param travisEnv
+ * @return a map of environment keys to lists of values for the key
+ */
+private def generateEnvAxes(travisEnv) {
+    def rawEnvEntries = getYamlStringOrListAsList(travisEnv)
+
+    def envEntries = [:]
+
+    for (def entryString in rawEnvEntries.toSet()) {
+        if (entryString instanceof String) {
+            def cleanedString = stripLeadingTrailingQuotes(entryString)
+            def (k, v) = cleanedString.split("=")
+
+            if (!(envEntries.containsKey(k))) {
+                envEntries[k] = []
+            }
+            envEntries[k].add(v)
+        }
+    }
+
+    return envEntries
+}
+
+private def generateEnvCombinations(travisEnv) {
+    Map<String,List<Object>> axes = generateEnvAxes(travisEnv)
+
+    List<List<List<Object>>> comboPairs = [axes*.key, axes*.value].transpose()*.combinations().combinations()
+
+    def combos = []
+
+    for (int i = 0; i < comboPairs.size(); i++) {
+        List thisCombo = comboPairs.get(i)
+        def thisMap = [:]
+
+        for (int j = 0; j < thisCombo.size(); j++) {
+            List thisPair = thisCombo.get(j)
+            thisMap[thisPair[0]] = thisPair[1]
+        }
+
+        combos.add(thisMap)
+    }
+
+    return combos
+}
+
+/**
+ * Takes a string, and if it both begins and ends with double quotes or single quotes, returns it with those quotes removed.
+ * Otherwise, returns the original string.
+ *
+ * @param inputString
+ * @return either inputString with leading/trailing quotes removed or the original inputString.
+ */
+private def stripLeadingTrailingQuotes(String inputString) {
+    if ((inputString.startsWith('"') && inputString.endsWith('"')) || (inputString.startsWith("'") && inputString.endsWith("'"))) {
+        return inputString.substring(1, inputString.length() - 1)
+    } else {
+        return inputString
     }
 }
 

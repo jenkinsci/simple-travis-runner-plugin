@@ -333,7 +333,12 @@ public class TravisPipelineConverterDSLTest {
         sampleRepo.write(".travis.yml",
                 "script: exit 0\n" +
                         "after_failure: echo 'in after_failure'\n" +
-                        "after_success: echo 'in after_success'\n");
+                        "after_success: echo 'in after_success'\n" +
+                        "env:\n" +
+                        "  - foo=bar\n" +
+                        "  - foo=apple\n" +
+                        "  - cat=cute\n" +
+                        "  - cat=adorable\n");
         sampleRepo.git("add", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
         story.addStep(new Statement() {

@@ -199,10 +199,13 @@ public class TravisPipelineConverterDSLTest {
         sampleRepo.init();
         sampleRepo.write("somefile", "");
         sampleRepo.write(".travis.yml",
-                "install: echo 'in install'\n" +
-                "script:\n" +
+                "before_install: echo 'in before_install'\n" +
+                        "install: echo 'in install'\n" +
+                        "before_script: echo 'in before_script'\n" +
+                        "script:\n" +
                         "  - ls -la\n" +
-                        "  - echo pants\n");
+                        "  - echo pants\n" +
+                        "after_script: echo 'in after_script'\n");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
         story.addStep(new Statement() {
@@ -219,20 +222,141 @@ public class TravisPipelineConverterDSLTest {
                         story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
                 story.j.assertLogContains("pants", b);
                 story.j.assertLogContains("in install", b);
+                story.j.assertLogContains("Travis Before Install", b);
                 story.j.assertLogContains("Travis Install", b);
+                story.j.assertLogContains("Travis Before Script", b);
                 story.j.assertLogContains("Travis Script", b);
+                story.j.assertLogContains("Travis After Script", b);
             }
         });
     }
 
+    @Test public void fastFailOnEarlyPhases() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("somefile", "");
+        sampleRepo.write(".travis.yml",
+                "before_install: exit 1\n" +
+                        "install: echo 'in install'\n" +
+                        "before_script: echo 'in before_script'\n" +
+                        "script:\n" +
+                        "  - ls -la\n" +
+                        "  - echo pants\n" +
+                        "after_script: echo 'in after_script'\n");
+        sampleRepo.git("add", "somefile", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
+                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "}",
+                        true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogContains("Travis Before Install",
+                        story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b)));
+                story.j.assertLogNotContains("Travis Install", b);
+                story.j.assertLogNotContains("Travis Before Script", b);
+                story.j.assertLogNotContains("Travis Script", b);
+                story.j.assertLogNotContains("Travis After Script", b);
+            }
+        });
+    }
+
+    @Test public void failureOnAfterPhasesIgnored() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("somefile", "");
+        sampleRepo.write(".travis.yml",
+                "before_install: echo 'in before_install'\n" +
+                        "install: echo 'in install'\n" +
+                        "before_script: echo 'in before_script'\n" +
+                        "script:\n" +
+                        "  - ls -la\n" +
+                        "  - echo pants\n" +
+                        "after_script: exit 1\n");
+        sampleRepo.git("add", "somefile", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
+                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "}",
+                        true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogContains("somefile",
+                        story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
+                story.j.assertLogContains("pants", b);
+                story.j.assertLogContains("in install", b);
+                story.j.assertLogContains("Travis Before Install", b);
+                story.j.assertLogContains("Travis Install", b);
+                story.j.assertLogContains("Travis Before Script", b);
+                story.j.assertLogContains("Travis Script", b);
+                story.j.assertLogContains("Travis After Script", b);
+            }
+        });
+    }
+
+    @Test public void afterFailure() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write(".travis.yml",
+                "script: exit 1\n" +
+                        "after_failure: echo 'in after_failure'\n" +
+                        "after_success: echo 'in after_success'\n");
+        sampleRepo.git("add", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
+                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "}",
+                        true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogNotContains("Travis Install",
+                        story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b)));
+                story.j.assertLogContains("Travis Script", b);
+                story.j.assertLogContains("Travis After Failure", b);
+                story.j.assertLogNotContains("Travis After Success", b);
+
+            }
+        });
+    }
+
+    @Test public void afterSuccess() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write(".travis.yml",
+                "script: exit 0\n" +
+                        "after_failure: echo 'in after_failure'\n" +
+                        "after_success: echo 'in after_success'\n");
+        sampleRepo.git("add", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
+                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "}",
+                        true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogNotContains("Travis Install",
+                        story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
+                story.j.assertLogContains("Travis Script", b);
+                story.j.assertLogContains("Travis After Success", b);
+                story.j.assertLogNotContains("Travis After Failure", b);
+
+            }
+        });
+    }
+
+
     // TODO: Figure out what to do about testing this on non-Unix platforms. The step won't work on Windows by design,
-    // but how do we test?
-
-    // TODO: Test after_success and after_failure
-
-    // TODO: Test failing fast from install, before_install, before_script
-
-    // TODO: Test continuing to after_* phases despite failure in script
-
-    // TODO: Test that failure in after_* phases does not cause failure of whole job? Not sure.
+    // but how do we run these tests without failure there? Or do we bother worrying about it?
 }

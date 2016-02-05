@@ -89,7 +89,7 @@ class TravisPipelineConverter implements Serializable {
                 }
             }
 
-            // Swallow any errors in after_*.
+            // Swallow any errors in after_* - may want to change this, not sure.
             try {
                 // If the script failed, proceed to after_failure.
                 if (failedScript) {

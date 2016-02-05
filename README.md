@@ -18,7 +18,7 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 
 # TODO
 - [X] ~~config.jelly and~~ \(config.jelly not needed for global variables\) help HTML for Snippet Generator and reference docs.
-- [ ] Tests, tests, tests!
+- [X] Tests, tests, tests! \(More tests would probably be good-to-have, but what's there covers existing functionality.\)
 - [ ] Ideally, find a way to optionally output as Pipeline code rather than execute, for migration purposes.
 - [X] Make sure this will fail if run outside of a `node` block.
 - [ ] Allow execution of all `script` entries even if one fails.
@@ -28,5 +28,6 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 - [ ] Figure out how to extrapolate `node` labels for axes to enable `parallel` usage.
 - [ ] Travis `matrix` inclusions and exclusions from environment axes (and `allow_failures`).
 - [ ] \(stretch goal\) Implement auto-generation of `script` and friends for (some) languages? Debatable whether to do this.
+- [ ] Decide whether to keep emulating Travis's behavior of ignore `after_*` steps' failures when setting build status.
 
 

@@ -21,14 +21,14 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core">
     <p>
-        The <code>travisPipelineConverter</code> variable provides a method that allows you to read and execute
-        non-language-specific Travis builds, as defined in a <code>.travis.yml</code> file.
+        The <code>travisPipelineConverter</code> method allows you to read and execute non-language-specific Travis
+        builds, as defined in a <code>.travis.yml</code> file.
     </p>
     <p>
         Reference:
     </p>
     <dl>
-        <dt><code>run(travisYmlPath)</code></dt>
+        <dt><code>travisPipelineConverter(travisYmlPath)</code></dt>
         <dd>
             <p>
                 Reads a <code>.travis.yml</code>-formatted file from the workspace with the given path, parses out supported

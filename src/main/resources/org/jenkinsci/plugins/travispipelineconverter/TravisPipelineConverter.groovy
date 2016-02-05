@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.travispipelineconverter
 
-import com.cloudbees.groovy.cps.NonCPS
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 import org.yaml.snakeyaml.Yaml
 

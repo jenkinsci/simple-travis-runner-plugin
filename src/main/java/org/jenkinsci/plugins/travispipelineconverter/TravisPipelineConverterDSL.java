@@ -28,8 +28,10 @@ import hudson.Extension;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.ProxyWhitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.StaticWhitelist;
 import org.jenkinsci.plugins.workflow.cps.CpsScript;
+import org.jenkinsci.plugins.workflow.cps.CpsThread;
 import org.jenkinsci.plugins.workflow.cps.GlobalVariable;
 
+import java.io.File;
 import java.io.IOException;
 
 @Extension
@@ -49,12 +51,16 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
         if (binding.hasVariable(getName())) {
             travisPipelineConverter = binding.getVariable(getName());
         } else {
-            travisPipelineConverter = script.getClass()
-                    .getClassLoader()
-                    .loadClass("org.jenkinsci.plugins.travispipelineconverter.TravisPipelineConverter")
-                    .getConstructor(CpsScript.class)
-                    .newInstance(script);
+            CpsThread c = CpsThread.current();
+            if (c == null)
+                throw new IllegalStateException("Expected to be called from CpsThread");
 
+            File converterGroovy = new File(getClass().getClassLoader().getResource("TravisPipelineConverter.groovy").getFile());
+            travisPipelineConverter = c.getExecution()
+                    .getShell()
+                    .getClassLoader()
+                    .parseClass(converterGroovy)
+                    .newInstance();
             binding.setVariable(getName(), travisPipelineConverter);
         }
 
@@ -79,4 +85,6 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
             ));
         }
     }
+
+
 }

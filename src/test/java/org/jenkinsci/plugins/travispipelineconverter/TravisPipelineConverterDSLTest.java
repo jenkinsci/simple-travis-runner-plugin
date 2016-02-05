@@ -63,7 +63,7 @@ public class TravisPipelineConverterDSLTest {
                 WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
                 WorkflowRun b = p.getLastBuild();
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(),
-                        "org.jenkinsci.plugins.travispipelineconverter.TravisPipelineConverter"));
+                        "TravisPipelineConverter"));
                 SemaphoreStep.success("wait/1", null);
                 story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
             }
@@ -98,7 +98,7 @@ public class TravisPipelineConverterDSLTest {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
-                        "  travisPipelineConverter.run('no-file')\n" +
+                        "  travisPipelineConverter('no-file')\n" +
                         "}", true));
                 story.j.assertLogContains("java.io.FileNotFoundException",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
@@ -111,9 +111,9 @@ public class TravisPipelineConverterDSLTest {
             @Override public void evaluate() throws Throwable {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
-                        "travisPipelineConverter.run('no-file')\n",
+                        "travisPipelineConverter('no-file')\n",
                         true));
-                story.j.assertLogContains("ERROR: travisPipelineConverter.run(...) can only be run within a 'node { ... }' block.",
+                story.j.assertLogContains("ERROR: travisPipelineConverter(...) can only be run within a 'node { ... }' block.",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
             }
         });
@@ -132,7 +132,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                         "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                        "  travisPipelineConverter.run('.travis.yml')\n" +
+                        "  travisPipelineConverter('.travis.yml')\n" +
                         "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -159,7 +159,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -184,7 +184,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -214,7 +214,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -250,7 +250,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -283,7 +283,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -314,7 +314,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -342,7 +342,7 @@ public class TravisPipelineConverterDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "node {\n" +
                                 "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
-                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "  travisPipelineConverter('.travis.yml')\n" +
                                 "}",
                         true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();

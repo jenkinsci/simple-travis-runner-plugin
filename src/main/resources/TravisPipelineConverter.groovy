@@ -36,36 +36,69 @@ import org.yaml.snakeyaml.Yaml
  *                    just run on 'node { }'.
  */
 public void call(String path, String labelExpr = null) {
-    if (env.HOME == null) {
-        error("travisPipelineConverter(...) can only be run within a 'node { ... }' block.")
+    if (env.HOME != null) {
+        error("travisPipelineConverter(travisFile[, label]) cannot be run within a 'node { ... }' block.")
     } else {
-        String travisFile = readFile(path)
+        try {
+            node(labelExpr) {
+                checkout scm
+                String travisFile = readFile(path)
 
-        def travisSteps = readAndConvertTravis(travisFile)
+                def travisSteps = readAndConvertTravis(travisFile)
 
-        // Let's see what we get from env!
-        if (travisSteps.containsKey("env")) {
-            def combos = generateEnvAxes(travisSteps.get("env"))
+                def envCombos
 
-            for (int k = 0; k < combos.size(); k++) {
-                echo("combo: ${combos.get(k)}")
+                // Let's see what we get from env!
+                if (travisSteps.containsKey("env")) {
+                    envCombos = generateEnvCombinations(travisSteps.get("env"))
+                }
+
+                if (envCombos != null && envCombos.size() > 0) {
+                    def parallelInvocations = [:]
+
+                    for (int i = 0; i < envCombos.size(); i++) {
+                        def thisEnv = envCombos.get(i)
+                        parallelInvocations[thisEnv.toString()] = {
+                            node(labelExpr) {
+                                withEnv(thisEnv, executeSteps(travisSteps, true))
+                            }
+                        }
+                    }
+
+                    stage "Parallel Travis Execution"
+                    parallel parallelInvocations
+
+                } else {
+                    executeSteps(travisSteps, false).call()
+                }
+
             }
+        } catch (IllegalStateException e) {
+            error("travisPipelineConverter(travisFile[, label]) can only be run in a Pipeline script from SCM.")
         }
+    }
 
+}
+
+private def executeSteps(travisSteps, boolean inParallel) {
+    return {
         // Fail fast on any errors in before_install, install or before_script
         if (travisSteps.containsKey("before_install")) {
-            stage "Travis Before Install"
-            getSteps(travisSteps.get("before_install")).call()
+            if (!inParallel)
+                stage "Travis Before Install"
+            getSteps(travisSteps.get("before_install"))
 
         }
         if (travisSteps.containsKey("install")) {
-            stage "Travis Install"
-            getSteps(travisSteps.get("install")).call()
+            if (!inParallel)
+                stage "Travis Install"
+            getSteps(travisSteps.get("install"))
 
         }
         if (travisSteps.containsKey("before_script")) {
-            stage "Travis Before Script"
-            getSteps(travisSteps.get("before_script")).call()
+            if (!inParallel)
+                stage "Travis Before Script"
+            getSteps(travisSteps.get("before_script"))
         }
 
         // Note any failure in the script section but don't fail the build yet.
@@ -77,8 +110,9 @@ public void call(String path, String labelExpr = null) {
             // TODO: Add timeout support (https://docs.travis-ci.com/user/customizing-the-build/#Build-Timeouts) for individual
             // script/test suite steps.
             if (travisSteps.containsKey("script")) {
-                stage "Travis Script"
-                getSteps(travisSteps.get("script")).call()
+                if (!inParallel)
+                    stage "Travis Script"
+                getSteps(travisSteps.get("script"))
             }
         } catch (Exception e) {
             echo("Error on script step: ${e}")
@@ -99,19 +133,22 @@ public void call(String path, String labelExpr = null) {
             // If the script failed, proceed to after_failure.
             if (failedScript) {
                 if (travisSteps.containsKey("after_failure")) {
-                    stage "Travis After Failure"
-                    getSteps(travisSteps.get("after_failure")).call()
+                    if (!inParallel)
+                        stage "Travis After Failure"
+                    getSteps(travisSteps.get("after_failure"))
                 }
             } else {
                 // Otherwise, check after_success.
                 if (travisSteps.containsKey("after_success")) {
-                    stage "Travis After Success"
-                    getSteps(travisSteps.get("after_success")).call()
+                    if (!inParallel)
+                        stage "Travis After Success"
+                    getSteps(travisSteps.get("after_success"))
                 }
             }
             if (travisSteps.containsKey("after_script")) {
-                stage "Travis After Script"
-                getSteps(travisSteps.get("after_script")).call()
+                if (!inParallel)
+                    stage "Travis After Script"
+                getSteps(travisSteps.get("after_script"))
             }
         } catch (Exception e) {
             echo("Error on after step(s), ignoring: ${e}")
@@ -170,6 +207,7 @@ private def getYamlStringOrListAsList(yamlEntry) throws IllegalArgumentException
  * @param travisEnv
  * @return a map of environment keys to lists of values for the key
  */
+
 private def generateEnvAxes(travisEnv) {
     def rawEnvEntries = getYamlStringOrListAsList(travisEnv)
 
@@ -177,36 +215,43 @@ private def generateEnvAxes(travisEnv) {
 
     for (def entryString in rawEnvEntries.toSet()) {
         if (entryString instanceof String) {
-            def cleanedString = stripLeadingTrailingQuotes(entryString)
-            def (k, v) = cleanedString.split("=")
 
-            if (!(envEntries.containsKey(k))) {
-                envEntries[k] = []
+            def cleanedString = stripLeadingTrailingQuotes(entryString)
+            def stringParts = cleanedString.split("=")
+
+            if (stringParts != null && stringParts.size() == 2) {
+                if (!(envEntries.containsKey(stringParts[0]))) {
+                    envEntries[stringParts[0]] = []
+                }
+                envEntries[stringParts[0]].add(stringParts[1])
             }
-            envEntries[k].add(v)
         }
     }
 
     return envEntries
 }
 
+
 private def generateEnvCombinations(travisEnv) {
     Map<String,List<Object>> axes = generateEnvAxes(travisEnv)
 
-    List<List<List<Object>>> comboPairs = [axes*.key, axes*.value].transpose()*.combinations().combinations()
+    List<List<Object>> valueCombos = axes.values().toList().combinations()
+
+    def keyList = axes.keySet().toList()
 
     def combos = []
 
-    for (int i = 0; i < comboPairs.size(); i++) {
-        List thisCombo = comboPairs.get(i)
-        def thisMap = [:]
+    for (int i = 0; i < valueCombos.size(); i++) {
+        List thisCombo = valueCombos.get(i)
+        def thisEnv = []
 
         for (int j = 0; j < thisCombo.size(); j++) {
-            List thisPair = thisCombo.get(j)
-            thisMap[thisPair[0]] = thisPair[1]
+            def thisVal = thisCombo.get(j)
+            def thisKey = keyList.get(j)
+            thisEnv.add(thisKey + "=" + thisVal)
         }
 
-        combos.add(thisMap)
+        combos.add(thisEnv)
     }
 
     return combos

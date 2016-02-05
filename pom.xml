@@ -31,6 +31,7 @@
         <jenkins-test-harness.version>2.1</jenkins-test-harness.version>
         <java.level>6</java.level>
         <workflow.version>1.13</workflow.version>
+        <concurrency>1</concurrency>
     </properties>
 
     <developers>
@@ -80,6 +81,11 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-aggregator</artifactId>
+            <version>${workflow.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-multibranch</artifactId>
             <version>${workflow.version}</version>
         </dependency>
 

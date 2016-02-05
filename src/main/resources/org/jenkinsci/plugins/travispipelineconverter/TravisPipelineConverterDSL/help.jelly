@@ -28,11 +28,12 @@ THE SOFTWARE.
         Reference:
     </p>
     <dl>
-        <dt><code>travisPipelineConverter(travisYmlPath)</code></dt>
+        <dt><code>travisPipelineConverter(travisYmlPath[, label])</code></dt>
         <dd>
             <p>
                 Reads a <code>.travis.yml</code>-formatted file from the workspace with the given path, parses out supported
-                aspects and executes them. Errors out if not run within a <code>node { ... }</code> block.
+                aspects and executes them. Errors out if not run within a <code>node { ... }</code> block. If the label is given,
+                runs its <code>node</code> blocks on that label, otherwise runs without specifying a label.
             </p>
         </dd>
     </dl>

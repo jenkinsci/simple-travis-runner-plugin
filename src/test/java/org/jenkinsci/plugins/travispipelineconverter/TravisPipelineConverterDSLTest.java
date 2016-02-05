@@ -195,7 +195,38 @@ public class TravisPipelineConverterDSLTest {
         });
     }
 
-    // TODO: Test multiple phases
+    @Test public void multiplePhases() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("somefile", "");
+        sampleRepo.write(".travis.yml",
+                "install: echo 'in install'\n" +
+                "script:\n" +
+                        "  - ls -la\n" +
+                        "  - echo pants\n");
+        sampleRepo.git("add", "somefile", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                        "node {\n" +
+                                "  git(url: $/" + sampleRepo + "/$, poll: false, changelog: false)\n" +
+                                "  travisPipelineConverter.run('.travis.yml')\n" +
+                                "}",
+                        true));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogContains("somefile",
+                        story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
+                story.j.assertLogContains("pants", b);
+                story.j.assertLogContains("in install", b);
+                story.j.assertLogContains("Travis Install", b);
+                story.j.assertLogContains("Travis Script", b);
+            }
+        });
+    }
+
+    // TODO: Figure out what to do about testing this on non-Unix platforms. The step won't work on Windows by design,
+    // but how do we test?
 
     // TODO: Test after_success and after_failure
 

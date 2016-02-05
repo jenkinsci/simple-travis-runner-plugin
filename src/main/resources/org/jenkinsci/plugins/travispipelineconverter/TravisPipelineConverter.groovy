@@ -146,12 +146,10 @@ class TravisPipelineConverter implements Serializable {
     /**
      * Given a ".travis.yml" formatted String (already read from a file), parses that as YAML and returns a nested Map
      * of the contents.
-     * TODO: Figure out if this actually needs to be NonCPS.
      *
      * @param travisYml The String contents of a ".travis.yml" file.
      * @return A Map with the top-level entries in the YAML as keys and their contents as Objects.
      */
-    @NonCPS
     private Map<String,Object> readAndConvertTravis(String travisYml) {
         Yaml yaml = new Yaml()
 

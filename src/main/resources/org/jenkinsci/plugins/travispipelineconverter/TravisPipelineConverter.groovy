@@ -38,29 +38,73 @@ class TravisPipelineConverter implements Serializable {
      * Errors out if run outside a node { } block.
      *
      * @param path The path to the file in question.
+     * @param labelExpr Optional label expression to run parallel "matrix" executions on. If not given, will
+     *                    just run on 'node { }'.
      */
-    public void run(String path) {
-        if (script.env.HOME == null) {
-            script.error("travisPipelineConverter.run(...) can only be run within a 'node { ... }' block.")
+    public void run(String path, String labelExpr = null) {
+        if (script.env.HOME != null) {
+            script.error("travisPipelineConverter.run(travisFile[, label]) cannot be run within a 'node { ... }' block.")
         } else {
-            String travisFile = script.readFile(path)
+            try {
+                script.node(labelExpr) {
+                    script.checkout script.scm
+                    String travisFile = script.readFile(path)
 
-            def travisSteps = readAndConvertTravis(travisFile)
+                    def travisSteps = readAndConvertTravis(travisFile)
 
+                    def envCombos
+
+                    // Let's see what we get from env!
+                    if (travisSteps.containsKey("env")) {
+                        envCombos = generateEnvCombinations(travisSteps.get("env"))
+                    }
+
+                    if (envCombos != null && envCombos.size() > 0) {
+                        def parallelInvocations = [:]
+
+                        for (int i = 0; i < envCombos.size(); i++) {
+                            def thisEnv = envCombos.get(i)
+                            parallelInvocations[thisEnv.toString()] = {
+                                script.node(labelExpr) {
+                                    script.withEnv(thisEnv, executeSteps(travisSteps, true))
+                                }
+                            }
+                        }
+
+                        script.stage "Parallel Travis Execution"
+                        script.parallel parallelInvocations
+
+                    } else {
+                        executeSteps(travisSteps, false).call()
+                    }
+
+                }
+            } catch (IllegalStateException e) {
+                script.error("travisPipelineConverter.run(travisFile[, label]) can only be run in a Pipeline script from SCM.")
+            }
+        }
+
+    }
+
+    private def executeSteps(travisSteps, boolean inParallel) {
+        return {
             // Fail fast on any errors in before_install, install or before_script
             if (travisSteps.containsKey("before_install")) {
-                script.stage "Travis Before Install"
-                getSteps(travisSteps.get("before_install")).call()
+                if (!inParallel)
+                    script.stage "Travis Before Install"
+                getSteps(travisSteps.get("before_install"))
 
             }
             if (travisSteps.containsKey("install")) {
-                script.stage "Travis Install"
-                getSteps(travisSteps.get("install")).call()
+                if (!inParallel)
+                    script.stage "Travis Install"
+                getSteps(travisSteps.get("install"))
 
             }
             if (travisSteps.containsKey("before_script")) {
-                script.stage "Travis Before Script"
-                getSteps(travisSteps.get("before_script")).call()
+                if (!inParallel)
+                    script.stage "Travis Before Script"
+                getSteps(travisSteps.get("before_script"))
             }
 
             // Note any failure in the script section but don't fail the build yet.
@@ -72,8 +116,9 @@ class TravisPipelineConverter implements Serializable {
                 // TODO: Add timeout support (https://docs.travis-ci.com/user/customizing-the-build/#Build-Timeouts) for individual
                 // script/test suite steps.
                 if (travisSteps.containsKey("script")) {
-                    script.stage "Travis Script"
-                    getSteps(travisSteps.get("script")).call()
+                    if (!inParallel)
+                        script.stage "Travis Script"
+                    getSteps(travisSteps.get("script"))
                 }
             } catch (Exception e) {
                 script.echo("Error on script step: ${e}")
@@ -94,19 +139,22 @@ class TravisPipelineConverter implements Serializable {
                 // If the script failed, proceed to after_failure.
                 if (failedScript) {
                     if (travisSteps.containsKey("after_failure")) {
-                        script.stage "Travis After Failure"
-                        getSteps(travisSteps.get("after_failure")).call()
+                        if (!inParallel)
+                            script.stage "Travis After Failure"
+                        getSteps(travisSteps.get("after_failure"))
                     }
                 } else {
                     // Otherwise, check after_success.
                     if (travisSteps.containsKey("after_success")) {
-                        script.stage "Travis After Success"
-                        getSteps(travisSteps.get("after_success")).call()
+                        if (!inParallel)
+                            script.stage "Travis After Success"
+                        getSteps(travisSteps.get("after_success"))
                     }
                 }
                 if (travisSteps.containsKey("after_script")) {
-                    script.stage "Travis After Script"
-                    getSteps(travisSteps.get("after_script")).call()
+                    if (!inParallel)
+                        script.stage "Travis After Script"
+                    getSteps(travisSteps.get("after_script"))
                 }
             } catch (Exception e) {
                 script.echo("Error on after step(s), ignoring: ${e}")
@@ -126,19 +174,106 @@ class TravisPipelineConverter implements Serializable {
      * @param travisStep The value for a Travis "step" - could be either a single String or an ArrayList of Strings.
      * @return A closure containing a possibly-empty array of Pipeline "sh" steps.
      */
-    def getSteps(travisStep) {
+    private def getSteps(travisStep) {
         def actualSteps = []
-        if (travisStep instanceof String) {
-            actualSteps[0] = script.sh((String) travisStep)
-        } else if (travisStep instanceof ArrayList) {
-            for (int i = 0; i < travisStep.size(); i++) {
-                def thisStep = travisStep.get(i)
-                actualSteps[i] = script.sh((String) thisStep)
-            }
+        def stepsList = getYamlStringOrListAsList(travisStep)
+        for (int i = 0; i < stepsList.size(); i++) {
+            def thisStep = stepsList.get(i)
+            actualSteps[i] = script.sh((String) thisStep)
         }
 
         return {
             actualSteps
+        }
+    }
+
+    /**
+     * Takes a YAML entry that could be either a single String or an ArrayList of Strings. If it's a single String, returns
+     * a new List with that String as the only element. If it's an ArrayList, simply return that list. If the entry is of
+     * any other type, throws an IllegalArgumentException.
+     *
+     * @param yamlEntry
+     * @return a list of (hopefully) Strings
+     * @throws IllegalArgumentException
+     */
+    private def getYamlStringOrListAsList(yamlEntry) throws IllegalArgumentException {
+        if (yamlEntry instanceof String) {
+            return [yamlEntry]
+        } else if (yamlEntry instanceof ArrayList) {
+            return yamlEntry
+        } else {
+            throw new IllegalArgumentException("Bad format of YAML - found ${yamlEntry.class} when expecting either 'String' or 'ArrayList'")
+        }
+    }
+
+    /**
+     * Takes the value of the 'env' key in the Travis YAML and returns a map with the environment keys as the key and a
+     * list of specified values for the environment key as the value.
+     *
+     * @param travisEnv
+     * @return a map of environment keys to lists of values for the key
+     */
+    private def generateEnvAxes(travisEnv) {
+        def rawEnvEntries = getYamlStringOrListAsList(travisEnv)
+
+        def envEntries = [:]
+
+        for (def entryString in rawEnvEntries.toSet()) {
+            if (entryString instanceof String) {
+
+                def cleanedString = stripLeadingTrailingQuotes(entryString)
+                def stringParts = cleanedString.split("=")
+
+                if (stringParts != null && stringParts.size() == 2) {
+                    if (!(envEntries.containsKey(stringParts[0]))) {
+                        envEntries[stringParts[0]] = []
+                    }
+                    envEntries[stringParts[0]].add(stringParts[1])
+                }
+            }
+        }
+
+        return envEntries
+    }
+
+
+    private def generateEnvCombinations(travisEnv) {
+        Map<String,List<Object>> axes = generateEnvAxes(travisEnv)
+
+        List<List<Object>> valueCombos = axes.values().toList().combinations()
+
+        def keyList = axes.keySet().toList()
+
+        def combos = []
+
+        for (int i = 0; i < valueCombos.size(); i++) {
+            List thisCombo = valueCombos.get(i)
+            def thisEnv = []
+
+            for (int j = 0; j < thisCombo.size(); j++) {
+                def thisVal = thisCombo.get(j)
+                def thisKey = keyList.get(j)
+                thisEnv.add(thisKey + "=" + thisVal)
+            }
+
+            combos.add(thisEnv)
+        }
+
+        return combos
+    }
+
+    /**
+     * Takes a string, and if it both begins and ends with double quotes or single quotes, returns it with those quotes removed.
+     * Otherwise, returns the original string.
+     *
+     * @param inputString
+     * @return either inputString with leading/trailing quotes removed or the original inputString.
+     */
+    private def stripLeadingTrailingQuotes(String inputString) {
+        if ((inputString.startsWith('"') && inputString.endsWith('"')) || (inputString.startsWith("'") && inputString.endsWith("'"))) {
+            return inputString.substring(1, inputString.length() - 1)
+        } else {
+            return inputString
         }
     }
 
@@ -152,7 +287,7 @@ class TravisPipelineConverter implements Serializable {
     private Map<String,Object> readAndConvertTravis(String travisYml) {
         Yaml yaml = new Yaml()
 
-        Map<String,Object> travisYaml = (Map<String,Object>) yaml.load(travisYml)
+        Map<String, Object> travisYaml = (Map<String, Object>) yaml.load(travisYml)
 
         return travisYaml
     }

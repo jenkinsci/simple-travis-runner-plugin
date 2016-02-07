@@ -75,7 +75,15 @@ public class TravisPipelineConverterDSL extends GlobalVariable {
                     "method java.util.Map containsKey java.lang.Object",
                     "method java.lang.Class isInstance java.lang.Object",
                     "staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter castToType java.lang.Object java.lang.Class",
-                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods toSet java.util.Collection"
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods toSet java.util.Collection",
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods size java.lang.Object[]",
+                    "method java.util.Map size",
+                    "method java.util.Map keySet",
+                    "method java.util.Map values",
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods toList java.util.Collection",
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods transpose java.util.List",
+                    "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods combinations java.util.Collection",
+                    "staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter compareGreaterThan java.lang.Object java.lang.Object"
             ));
         }
     }

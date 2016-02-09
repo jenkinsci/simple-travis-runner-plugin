@@ -24,8 +24,9 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 - [ ] Allow execution of all `script` entries even if one fails.
 - [ ] Time out individual `script` entries.
 - [ ] Determine what language-specific environment axes will be supported natively (i.e., `rvm`, `php`, etc)
-- [ ] Implement environment axes equivalent to Jenkins Matrix jobs, serially initially.
-- [ ] Figure out how to extrapolate `node` labels for axes to enable `parallel` usage.
+- [X] Implement environment axes equivalent to Jenkins Matrix jobs, serially initially.
+- [X] Figure out how to extrapolate `node` labels for axes to enable
+`parallel` usage. \(switched this up - requiring `node` context now and/or specification of a label\)
 - [ ] Travis `matrix` inclusions and exclusions from environment axes (and `allow_failures`).
 - [ ] \(stretch goal\) Implement auto-generation of `script` and friends for (some) languages? Debatable whether to do this.
 - [ ] Decide whether to keep emulating Travis's behavior of ignore `after_*` steps' failures when setting build status.

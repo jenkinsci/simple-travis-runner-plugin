@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.travispipelineconverter;
+package org.jenkinsci.plugins.simpletravisrunner;
 
 import groovy.lang.Binding;
 import hudson.Extension;
@@ -33,32 +33,32 @@ import org.jenkinsci.plugins.workflow.cps.GlobalVariable;
 import java.io.IOException;
 
 @Extension
-public class TravisPipelineConverterDSL extends GlobalVariable {
+public class SimpleTravisRunnerDSL extends GlobalVariable {
     @Override
     public String getName() {
-        return "travisPipelineConverter";
+        return "simpleTravisRunner";
     }
 
     @Override
     public Object getValue(CpsScript script) throws Exception {
         Binding binding = script.getBinding();
-        Object travisPipelineConverter;
+        Object simpleTravisRunner;
 
         // If we already have a travisPipelineConverter defined, reuse it. Otherwise, load it from the DSL groovy and
         // add it to the binding.
         if (binding.hasVariable(getName())) {
-            travisPipelineConverter = binding.getVariable(getName());
+            simpleTravisRunner = binding.getVariable(getName());
         } else {
-            travisPipelineConverter = script.getClass()
+            simpleTravisRunner = script.getClass()
                     .getClassLoader()
-                    .loadClass("org.jenkinsci.plugins.travispipelineconverter.TravisPipelineConverter")
+                    .loadClass("org.jenkinsci.plugins.simpletravisrunner.SimpleTravisRunner")
                     .getConstructor(CpsScript.class)
                     .newInstance(script);
 
-            binding.setVariable(getName(), travisPipelineConverter);
+            binding.setVariable(getName(), simpleTravisRunner);
         }
 
-        return travisPipelineConverter;
+        return simpleTravisRunner;
     }
 
     @Extension

@@ -21,15 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.travispipelineconverter
+package org.jenkinsci.plugins.simpletravisrunner
 
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 import org.yaml.snakeyaml.Yaml
 
-class TravisPipelineConverter implements Serializable {
+class SimpleTravisRunner implements Serializable {
     private CpsScript script;
 
-    public TravisPipelineConverter(CpsScript script) {
+    public SimpleTravisRunner(CpsScript script) {
         this.script = script;
     }
 
@@ -41,9 +41,9 @@ class TravisPipelineConverter implements Serializable {
      * @param labelExpr Optional label expression to run parallel "matrix" executions on. If not given, will
      *                    just run on 'node { }'.
      */
-    public void run(String path, String labelExpr = null) {
+    public void call(String path, String labelExpr = null) {
         if (script.env.HOME != null) {
-            script.error("travisPipelineConverter.run(travisFile[, label]) cannot be run within a 'node { ... }' block.")
+            script.error("simpleTravisRunner(travisFile[, label]) cannot be run within a 'node { ... }' block.")
         } else {
             try {
                 script.node(labelExpr) {
@@ -80,7 +80,7 @@ class TravisPipelineConverter implements Serializable {
 
                 }
             } catch (IllegalStateException e) {
-                script.error("travisPipelineConverter.run(travisFile[, label]) can only be run in a Pipeline script from SCM.")
+                script.error("simpleTravisRunner(travisFile[, label]) can only be run in a Pipeline script from SCM.")
             }
         }
 

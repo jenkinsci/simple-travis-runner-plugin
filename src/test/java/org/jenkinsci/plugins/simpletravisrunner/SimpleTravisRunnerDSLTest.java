@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.travispipelineconverter;
+package org.jenkinsci.plugins.simpletravisrunner;
 
 import hudson.model.Result;
 import java.io.File;
@@ -45,7 +45,7 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
-public class TravisPipelineConverterDSLTest {
+public class SimpleTravisRunnerDSLTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
@@ -65,7 +65,7 @@ public class TravisPipelineConverterDSLTest {
                 WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
                 WorkflowRun b = p.getLastBuild();
                 assertEquals(Collections.<String>emptySet(), grep(b.getRootDir(),
-                        "TravisPipelineConverter"));
+                        "SimpleTravisRunner"));
                 SemaphoreStep.success("wait/1", null);
                 story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
             }
@@ -96,7 +96,7 @@ public class TravisPipelineConverterDSLTest {
 
     @Test public void failIfNoFile() throws Exception {
         sampleRepo.init();
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('no-file')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('no-file')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--message=files");
         story.addStep(new Statement() {
@@ -111,14 +111,14 @@ public class TravisPipelineConverterDSLTest {
 
     @Test public void failIfInNode() throws Exception {
         sampleRepo.init();
-        sampleRepo.write("Jenkinsfile", "node { travisPipelineConverter.run('no-file') }");
+        sampleRepo.write("Jenkinsfile", "node { simpleTravisRunner('no-file') }");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--message=files");
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
-                story.j.assertLogContains("ERROR: travisPipelineConverter.run(travisFile[, label]) cannot be run within a 'node { ... }' block.",
+                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label]) cannot be run within a 'node { ... }' block.",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
             }
         });
@@ -129,9 +129,9 @@ public class TravisPipelineConverterDSLTest {
             @Override public void evaluate() throws Throwable {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
-                        "travisPipelineConverter.run('no-file')\n",
+                        "simpleTravisRunner('no-file')\n",
                         true));
-                story.j.assertLogContains("ERROR: travisPipelineConverter.run(travisFile[, label]) can only be run in a Pipeline script from SCM.",
+                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label]) can only be run in a Pipeline script from SCM.",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
             }
         });
@@ -142,7 +142,7 @@ public class TravisPipelineConverterDSLTest {
         sampleRepo.write("somefile", "");
         sampleRepo.write(".travis.yml",
                 "script: ls -la");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -166,7 +166,7 @@ public class TravisPipelineConverterDSLTest {
                 "script:\n" +
                         "  - ls -la\n" +
                         "  - echo pants\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -188,7 +188,7 @@ public class TravisPipelineConverterDSLTest {
         sampleRepo.init();
         sampleRepo.write(".travis.yml",
                 "script: exit 1\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -215,7 +215,7 @@ public class TravisPipelineConverterDSLTest {
                         "  - ls -la\n" +
                         "  - echo pants\n" +
                         "after_script: echo 'in after_script'\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -248,7 +248,7 @@ public class TravisPipelineConverterDSLTest {
                         "  - ls -la\n" +
                         "  - echo pants\n" +
                         "after_script: echo 'in after_script'\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -278,7 +278,7 @@ public class TravisPipelineConverterDSLTest {
                         "  - ls -la\n" +
                         "  - echo pants\n" +
                         "after_script: exit 1\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", "somefile", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -305,7 +305,7 @@ public class TravisPipelineConverterDSLTest {
                 "script: exit 1\n" +
                         "after_failure: echo 'in after_failure'\n" +
                         "after_success: echo 'in after_success'\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", ".travis.yml");
         sampleRepo.git("commit", "--message=files");
@@ -330,7 +330,7 @@ public class TravisPipelineConverterDSLTest {
                 "script: exit 0\n" +
                         "after_failure: echo 'in after_failure'\n" +
                         "after_success: echo 'in after_success'\n");
-        sampleRepo.write("Jenkinsfile", "travisPipelineConverter.run('.travis.yml')");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml')");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("add", ".travis.yml");
         sampleRepo.git("commit", "--message=files");

@@ -118,7 +118,7 @@ public class SimpleTravisRunnerDSLTest {
             @Override public void evaluate() throws Throwable {
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
-                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label]) cannot be run within a 'node { ... }' block.",
+                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label, timeout]) cannot be run within a 'node { ... }' block.",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
             }
         });
@@ -131,7 +131,7 @@ public class SimpleTravisRunnerDSLTest {
                 p.setDefinition(new CpsFlowDefinition(
                         "simpleTravisRunner('no-file')\n",
                         true));
-                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label]) can only be run in a Pipeline script from SCM.",
+                story.j.assertLogContains("ERROR: simpleTravisRunner(travisFile[, label, timeout]) can only be run in a Pipeline script from SCM.",
                         story.j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get()));
             }
         });
@@ -345,6 +345,30 @@ public class SimpleTravisRunnerDSLTest {
                 story.j.assertLogContains("Travis After Success", b);
                 story.j.assertLogNotContains("Travis After Failure", b);
 
+            }
+        });
+    }
+
+    @Test public void timeoutStep() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("somefile", "");
+        sampleRepo.write(".travis.yml",
+                "script: sleep 75");
+        sampleRepo.write("Jenkinsfile", "simpleTravisRunner('.travis.yml', null, 1)");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("add", "somefile", ".travis.yml");
+        sampleRepo.git("commit", "--message=files");
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.assertLogNotContains("Travis Install",
+                        story.j.assertBuildStatus(Result.FAILURE, story.j.waitForCompletion(b)));
+                story.j.assertLogContains("Travis Script", b);
+                story.j.assertLogContains("Enforce time limit : Start", b);
+                story.j.assertLogContains("Enforce time limit : End", b);
+                story.j.assertLogContains("Sending interrupt signal to process", b);
             }
         });
     }

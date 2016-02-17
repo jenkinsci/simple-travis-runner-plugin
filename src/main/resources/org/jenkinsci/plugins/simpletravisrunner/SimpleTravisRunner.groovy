@@ -40,10 +40,11 @@ class SimpleTravisRunner implements Serializable {
      * @param path The path to the file in question.
      * @param labelExpr Optional label expression to run parallel "matrix" executions on. If not given, will
      *                    just run on 'node { }'.
+     * @param timeout Optional timeout, in minutes, for individual steps - defaults to 50 minutes, like travis-ci.org.
      */
-    public void call(String path, String labelExpr = null) {
+    public void call(String path, String labelExpr = null, Integer timeout = 50) {
         if (script.env.HOME != null) {
-            script.error("simpleTravisRunner(travisFile[, label]) cannot be run within a 'node { ... }' block.")
+            script.error("simpleTravisRunner(travisFile[, label, timeout]) cannot be run within a 'node { ... }' block.")
         } else {
             try {
                 script.node(labelExpr) {
@@ -66,7 +67,7 @@ class SimpleTravisRunner implements Serializable {
                             def thisEnv = envCombos.get(i)
                             parallelInvocations[thisEnv.toString()] = {
                                 script.node(labelExpr) {
-                                    script.withEnv(thisEnv, executeSteps(travisSteps, true))
+                                    script.withEnv(thisEnv, executeSteps(travisSteps, true, timeout))
                                 }
                             }
                         }
@@ -75,36 +76,36 @@ class SimpleTravisRunner implements Serializable {
                         script.parallel parallelInvocations
 
                     } else {
-                        executeSteps(travisSteps, false).call()
+                        executeSteps(travisSteps, false, timeout).call()
                     }
 
                 }
             } catch (IllegalStateException e) {
-                script.error("simpleTravisRunner(travisFile[, label]) can only be run in a Pipeline script from SCM.")
+                script.error("simpleTravisRunner(travisFile[, label, timeout]) can only be run in a Pipeline script from SCM.")
             }
         }
 
     }
 
-    private def executeSteps(travisSteps, boolean inParallel) {
+    private def executeSteps(travisSteps, boolean inParallel, Integer timeout) {
         return {
             // Fail fast on any errors in before_install, install or before_script
             if (travisSteps.containsKey("before_install")) {
                 if (!inParallel)
                     script.stage "Travis Before Install"
-                getSteps(travisSteps.get("before_install"))
+                getSteps(travisSteps.get("before_install"), timeout)
 
             }
             if (travisSteps.containsKey("install")) {
                 if (!inParallel)
                     script.stage "Travis Install"
-                getSteps(travisSteps.get("install"))
+                getSteps(travisSteps.get("install"), timeout)
 
             }
             if (travisSteps.containsKey("before_script")) {
                 if (!inParallel)
                     script.stage "Travis Before Script"
-                getSteps(travisSteps.get("before_script"))
+                getSteps(travisSteps.get("before_script"), timeout)
             }
 
             // Note any failure in the script section but don't fail the build yet.
@@ -113,12 +114,10 @@ class SimpleTravisRunner implements Serializable {
                 // TODO: Ideally we change this to note failures in script steps but continue through all of them
                 // to completion anyway, as described in https://docs.travis-ci.com/user/customizing-the-build/#Customizing-the-Build-Step,
                 // but I want to think about the implementation more.
-                // TODO: Add timeout support (https://docs.travis-ci.com/user/customizing-the-build/#Build-Timeouts) for individual
-                // script/test suite steps.
                 if (travisSteps.containsKey("script")) {
                     if (!inParallel)
                         script.stage "Travis Script"
-                    getSteps(travisSteps.get("script"))
+                    getSteps(travisSteps.get("script"), timeout)
                 }
             } catch (Exception e) {
                 script.echo("Error on script step: ${e}")
@@ -141,20 +140,20 @@ class SimpleTravisRunner implements Serializable {
                     if (travisSteps.containsKey("after_failure")) {
                         if (!inParallel)
                             script.stage "Travis After Failure"
-                        getSteps(travisSteps.get("after_failure"))
+                        getSteps(travisSteps.get("after_failure"), timeout)
                     }
                 } else {
                     // Otherwise, check after_success.
                     if (travisSteps.containsKey("after_success")) {
                         if (!inParallel)
                             script.stage "Travis After Success"
-                        getSteps(travisSteps.get("after_success"))
+                        getSteps(travisSteps.get("after_success"), timeout)
                     }
                 }
                 if (travisSteps.containsKey("after_script")) {
                     if (!inParallel)
                         script.stage "Travis After Script"
-                    getSteps(travisSteps.get("after_script"))
+                    getSteps(travisSteps.get("after_script"), timeout)
                 }
             } catch (Exception e) {
                 script.echo("Error on after step(s), ignoring: ${e}")
@@ -172,16 +171,18 @@ class SimpleTravisRunner implements Serializable {
      * Pipeline "sh" steps inside a closure to execute those "steps".
      *
      * @param travisStep The value for a Travis "step" - could be either a single String or an ArrayList of Strings.
+     * @param timeout Timeout in minutes for execution of this step.
      * @return A closure containing a possibly-empty array of Pipeline "sh" steps.
      */
-    private def getSteps(travisStep) {
+    private def getSteps(travisStep, Integer timeout) {
         def actualSteps = []
         def stepsList = getYamlStringOrListAsList(travisStep)
         for (int i = 0; i < stepsList.size(); i++) {
             def thisStep = stepsList.get(i)
-            actualSteps[i] = script.sh((String) thisStep)
+            actualSteps[i] = script.timeout(time: timeout, unit: 'MINUTES') {
+                script.sh((String) thisStep)
+            }
         }
-
         return {
             actualSteps
         }

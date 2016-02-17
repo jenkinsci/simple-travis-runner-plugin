@@ -1,5 +1,5 @@
 # Introduction
-A really quick and dirty Pipeline step to convert Travis YAML to Pipeline on the fly.
+A Jenkins Pipeline step to convert simple Travis YAML to Pipeline on the fly.
 
 # Currently supported
 - `before_install`
@@ -9,6 +9,7 @@ A really quick and dirty Pipeline step to convert Travis YAML to Pipeline on the
 - `after_failure`
 - `after_success`
 - `after_script`
+- `env` \(though not yet excludes/includes or language-specific axes\)
 
 # Where's the logic?
 Actual guts are all in [SimpleTravisRunner.groovy](https://github.com/abayer/simple-travis-runner-plugin/blob/master/src/main/resources/org/jenkinsci/plugins/simpletravisrunner/SimpleTravisRunner.groovy).
@@ -22,7 +23,7 @@ An example of using a Jenkinsfile to call a .travis.yml can be found at [this re
 - [ ] Ideally, find a way to optionally output as Pipeline code rather than execute, for migration purposes.
 - [X] Make sure this will fail if run outside of a `node` block.
 - [ ] Allow execution of all `script` entries even if one fails.
-- [ ] Time out individual `script` entries.
+- [X] Time out individual `script` entries.
 - [ ] Determine what language-specific environment axes will be supported natively (i.e., `rvm`, `php`, etc)
 - [X] Implement environment axes equivalent to Jenkins Matrix jobs, serially initially.
 - [X] Figure out how to extrapolate `node` labels for axes to enable

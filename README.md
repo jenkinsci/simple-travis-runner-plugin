@@ -11,7 +11,7 @@ A really quick and dirty Pipeline step to convert Travis YAML to Pipeline on the
 - `after_script`
 
 # Where's the logic?
-Actual guts are all in [TravisPipelineConverter.groovy](https://github.com/abayer/travis-pipeline-converter-plugin/blob/master/src/main/resources/org/jenkinsci/plugins/travispipelineconverter/TravisPipelineConverter.groovy).
+Actual guts are all in [SimpleTravisRunner.groovy](https://github.com/abayer/simple-travis-runner-plugin/blob/master/src/main/resources/org/jenkinsci/plugins/simpletravisrunner/SimpleTravisRunner.groovy).
 
 # Example
 An example of using a Jenkinsfile to call a .travis.yml can be found at [this repo](https://github.com/abayer/dummy-travis-test).

@@ -41,24 +41,11 @@ public class SimpleTravisRunnerDSL extends GlobalVariable {
 
     @Override
     public Object getValue(CpsScript script) throws Exception {
-        Binding binding = script.getBinding();
-        Object simpleTravisRunner;
-
-        // If we already have a travisPipelineConverter defined, reuse it. Otherwise, load it from the DSL groovy and
-        // add it to the binding.
-        if (binding.hasVariable(getName())) {
-            simpleTravisRunner = binding.getVariable(getName());
-        } else {
-            simpleTravisRunner = script.getClass()
-                    .getClassLoader()
-                    .loadClass("org.jenkinsci.plugins.simpletravisrunner.SimpleTravisRunner")
-                    .getConstructor(CpsScript.class)
-                    .newInstance(script);
-
-            binding.setVariable(getName(), simpleTravisRunner);
-        }
-
-        return simpleTravisRunner;
+        return script.getClass()
+                .getClassLoader()
+                .loadClass("org.jenkinsci.plugins.simpletravisrunner.SimpleTravisRunner")
+                .getConstructor(CpsScript.class)
+                .newInstance(script);
     }
 
     @Extension

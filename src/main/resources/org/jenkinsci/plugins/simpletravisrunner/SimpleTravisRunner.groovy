@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.simpletravisrunner
 
+import com.cloudbees.groovy.cps.NonCPS
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 import org.yaml.snakeyaml.Yaml
 
@@ -126,7 +127,9 @@ class SimpleTravisRunner implements Serializable {
 
             if (!failedScript) {
                 // Skip the deploy-related steps since those rely on Travis internals.
-                for (String deployStep in ["before_deploy", "deploy", "after_deploy"].toSet()) {
+                def deploySteps = ["before_deploy", "deploy", "after_deploy"]
+                for (int i = 0; i < deploySteps.size(); i++) {
+                    def deployStep = deploySteps.get(i)
                     if (travisSteps.containsKey(deployStep)) {
                         script.echo("Not executing '${deployStep}' - Travis-specific")
                     }
@@ -282,9 +285,12 @@ class SimpleTravisRunner implements Serializable {
      * Given a ".travis.yml" formatted String (already read from a file), parses that as YAML and returns a nested Map
      * of the contents.
      *
+     * NOTE - this is annotated with "@NonCPS" because the Yaml class isn't serializable.
+     *
      * @param travisYml The String contents of a ".travis.yml" file.
      * @return A Map with the top-level entries in the YAML as keys and their contents as Objects.
      */
+    @NonCPS
     private Map<String,Object> readAndConvertTravis(String travisYml) {
         Yaml yaml = new Yaml()
 

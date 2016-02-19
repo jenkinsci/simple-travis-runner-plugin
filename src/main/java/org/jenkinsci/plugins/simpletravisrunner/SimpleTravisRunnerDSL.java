@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.simpletravisrunner;
 
-import groovy.lang.Binding;
 import hudson.Extension;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.ProxyWhitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.StaticWhitelist;
